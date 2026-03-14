@@ -1,0 +1,226 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #252525;
+  --border-color: #333;
+  --text-primary: #fff;
+  --text-secondary: #888;
+  --text-muted: #666;
+  --accent-blue: #3b82f6;
+  --accent-green: #22c55e;
+  --accent-yellow: #eab308;
+  --accent-purple: #a855f7;
+  --accent-orange: #f97316;
+  --accent-cyan: #06b6d4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Panel styles */
+.panel {
+  @apply bg-[#1a1a1a] border border-[#333] rounded-xl overflow-hidden;
+}
+
+.panel-header {
+  @apply flex items-center gap-2 px-4 py-3 text-sm font-semibold tracking-wider uppercase;
+  color: var(--text-secondary);
+}
+
+.panel-header svg {
+  @apply w-4 h-4;
+}
+
+.panel-content {
+  @apply px-4 pb-4;
+}
+
+/* Code editor */
+.code-line {
+  @apply flex items-center py-0.5 px-2 rounded;
+}
+
+.code-line.executing {
+  @apply bg-blue-500/20;
+}
+
+.line-number {
+  @apply w-8 text-right mr-4 text-[#666] select-none text-sm;
+}
+
+.executing-badge {
+  @apply ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-blue-500 text-white;
+}
+
+/* Stack frame */
+.stack-frame {
+  @apply p-3 rounded-lg bg-[#252525] border border-[#333];
+}
+
+.stack-frame.active {
+  @apply bg-blue-500/20 border-blue-500/50;
+}
+
+/* Context item */
+.context-item {
+  @apply p-3 rounded-lg bg-[#252525] border border-[#333] mb-2;
+}
+
+/* Queue item */
+.queue-item {
+  @apply px-3 py-2 rounded bg-[#252525] text-sm;
+}
+
+/* Console entry */
+.console-entry {
+  @apply flex items-start gap-2 py-1.5 px-3 text-sm font-mono border-b border-[#252525];
+}
+
+/* Buttons */
+.btn-control {
+  @apply w-12 h-12 rounded-xl flex items-center justify-center transition-all;
+  @apply bg-[#252525] border border-[#333] text-[#888];
+  @apply hover:bg-[#333] hover:text-white hover:border-[#444];
+}
+
+.btn-control:disabled {
+  @apply opacity-40 cursor-not-allowed hover:bg-[#252525] hover:text-[#888];
+}
+
+.btn-play {
+  @apply w-16 h-16 rounded-full flex items-center justify-center;
+  @apply bg-blue-500 text-white shadow-lg shadow-blue-500/30;
+  @apply hover:bg-blue-400 hover:shadow-blue-500/50;
+  @apply transition-all duration-200;
+}
+
+.btn-play:disabled {
+  @apply bg-[#333] text-[#666] shadow-none;
+}
+
+/* Speed button */
+.speed-btn {
+  @apply px-3 py-1.5 rounded-lg text-sm font-medium transition-all;
+}
+
+.speed-btn.active {
+  @apply bg-blue-500 text-white;
+}
+
+.speed-btn:not(.active) {
+  @apply text-[#888] hover:text-white hover:bg-[#333];
+}
+
+/* Progress bar */
+.progress-track {
+  @apply h-1.5 bg-[#333] rounded-full overflow-hidden;
+}
+
+.progress-fill {
+  @apply h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full;
+  transition: width 0.3s ease;
+}
+
+/* Event loop circle */
+.event-loop-circle {
+  @apply relative w-48 h-48;
+}
+
+.event-loop-node {
+  @apply absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold;
+  @apply border-2 transition-all duration-300;
+}
+
+.event-loop-node.active {
+  @apply scale-125 shadow-lg;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+  50% { box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.3); }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.3s ease-out;
+}
+
+.animate-pop-in {
+  animation: pop-in 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Monaco overrides */
+.monaco-editor {
+  background: transparent !important;
+}
+
+.monaco-editor .margin {
+  background: transparent !important;
+}
