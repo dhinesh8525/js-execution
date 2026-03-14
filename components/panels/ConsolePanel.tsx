@@ -46,7 +46,7 @@ export function ConsolePanel() {
                     {'>'}
                   </motion.span>
                   <span className="flex-1 text-white font-mono text-sm">
-                    "{entry.value}"
+                    &quot;{entry.value}&quot;
                   </span>
                   {entry.line > 0 && (
                     <span className="text-[#555] text-xs">:{entry.line}</span>
