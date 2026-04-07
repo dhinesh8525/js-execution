@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEditorStore } from '@/stores/editorStore'
 import { useExecutionStore } from '@/stores/executionStore'
@@ -17,12 +17,25 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
   const [isFetchingUrl, setIsFetchingUrl] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [fetchedTitle, setFetchedTitle] = useState<string | null>(null)
-  const { code, setCode, loadExample, highlightedLine } = useEditorStore()
+  const { code, setCode, loadExample, highlights } = useEditorStore()
   const currentLabel = useExecutionStore((s) => s.currentLabel)
   const [selectedExample, setSelectedExample] = useState<ExampleKey | null>('basic')
   const [isCustomCode, setIsCustomCode] = useState(false)
   const [isFromUrl, setIsFromUrl] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Build a map of line -> highlight info for quick lookup
+  const highlightMap = useMemo(() => {
+    const map = new Map<number, typeof highlights[0]>()
+    for (const h of highlights) {
+      // If multiple highlights on same line, prefer 'executing' over others
+      const existing = map.get(h.line)
+      if (!existing || h.type === 'executing') {
+        map.set(h.line, h)
+      }
+    }
+    return map
+  }, [highlights])
 
   const handleExampleSelect = (key: ExampleKey) => {
     loadExample(key)
@@ -47,7 +60,6 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
       return
     }
 
-    // Basic URL validation
     try {
       new URL(urlInput)
     } catch {
@@ -88,15 +100,18 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
   const lines = code.split('\n')
 
   // Group examples by category
-  const groupedExamples = Object.entries(EXAMPLE_SNIPPETS).reduce((acc, [key, value]) => {
-    const cat = value.category || 'basics'
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push({ key: key as ExampleKey, ...value })
-    return acc
-  }, {} as Record<string, Array<{ key: ExampleKey } & typeof EXAMPLE_SNIPPETS[ExampleKey]>>)
+  const groupedExamples = Object.entries(EXAMPLE_SNIPPETS).reduce(
+    (acc, [key, value]) => {
+      const cat = value.category || 'basics'
+      if (!acc[cat]) acc[cat] = []
+      acc[cat].push({ key: key as ExampleKey, ...value })
+      return acc
+    },
+    {} as Record<string, Array<{ key: ExampleKey } & (typeof EXAMPLE_SNIPPETS)[ExampleKey]>>
+  )
 
   return (
-    <div className="panel h-full flex flex-col">
+    <div id="code-panel" className="panel h-full flex flex-col">
       <div className="panel-header">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M16 18l6-6-6-6M8 6l-6 6 6 6" />
@@ -107,9 +122,7 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
       <div className="px-4 pb-3 space-y-3">
         {/* URL Input Section */}
         <div className="space-y-2">
-          <div className="text-[10px] uppercase tracking-wider text-[#666]">
-            Import from GeeksforGeeks
-          </div>
+          <div className="text-[10px] uppercase tracking-wider text-[#666]">Import from GeeksforGeeks</div>
           <div className="flex gap-2">
             <input
               type="url"
@@ -140,11 +153,21 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </motion.svg>
               ) : (
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
                 </svg>
               )}
               <span>Fetch</span>
@@ -159,7 +182,11 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
                 className="text-xs text-red-400 flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 {urlError}
               </motion.div>
@@ -179,14 +206,22 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
           whileTap={{ scale: 0.99 }}
           onClick={handleCustomCode}
           className={`w-full p-3 rounded-lg border text-left transition-all group ${
-            isCustomCode
-              ? 'bg-blue-500/10 border-blue-500/50'
-              : 'bg-[#252525] border-[#333] hover:border-[#444]'
+            isCustomCode ? 'bg-blue-500/10 border-blue-500/50' : 'bg-[#252525] border-[#333] hover:border-[#444]'
           }`}
         >
           <div className="flex items-center gap-2">
-            <svg className={`w-5 h-5 ${isCustomCode ? 'text-blue-400' : 'text-[#666] group-hover:text-blue-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg
+              className={`w-5 h-5 ${isCustomCode ? 'text-blue-400' : 'text-[#666] group-hover:text-blue-400'}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
             </svg>
             <div>
               <div className={`font-medium ${isCustomCode ? 'text-blue-400' : 'text-white'}`}>Write Custom Code</div>
@@ -259,19 +294,29 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
                               </motion.svg>
                             )}
                             <span className={selectedExample === example.key ? 'text-blue-400' : 'text-white'}>
                               {example.title}
                             </span>
+                            {'mode' in example && (
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                                example.mode === 'DSA'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                              }`}>
+                                {example.mode === 'DSA' ? 'DSA' : 'Event Loop'}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
                               {example.complexity.time}
-                            </span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
-                              {example.complexity.space}
                             </span>
                           </div>
                         </div>
@@ -286,14 +331,14 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
 
         {/* Example Info */}
         {currentExample && !isFromUrl && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-2"
-          >
+          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
             <div className="flex items-start gap-2 text-xs text-[#888]">
               <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span>{currentExample.description}</span>
             </div>
@@ -302,15 +347,27 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-green-500/10 border border-green-500/30">
                 <svg className="w-3 h-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 <span className="text-[10px] text-green-400 font-medium">Time: {currentExample.complexity.time}</span>
               </div>
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-500/30">
                 <svg className="w-3 h-3 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7c-2 0-3 1-3 3z"
+                  />
                 </svg>
-                <span className="text-[10px] text-purple-400 font-medium">Space: {currentExample.complexity.space}</span>
+                <span className="text-[10px] text-purple-400 font-medium">
+                  Space: {currentExample.complexity.space}
+                </span>
               </div>
             </div>
           </motion.div>
@@ -324,14 +381,18 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
             className="flex items-start gap-2 text-xs text-[#888]"
           >
             <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
             </svg>
             <span>Loaded from GeeksforGeeks: {fetchedTitle}</span>
           </motion.div>
         )}
       </div>
 
-      {/* Code Display */}
+      {/* Code Display with Multi-Highlight Support */}
       <div className="flex-1 overflow-auto px-2 pb-2 font-mono text-sm">
         {isCustomCode ? (
           <textarea
@@ -345,30 +406,76 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
         ) : (
           lines.map((line, index) => {
             const lineNum = index + 1
-            const isHighlighted = highlightedLine === lineNum
+            const highlight = highlightMap.get(lineNum)
+            const isExecuting = highlight?.type === 'executing'
+            const isScheduledFrom = highlight?.type === 'scheduled-from'
+            const isWillExecute = highlight?.type === 'will-execute'
+
+            // Determine background color based on highlight type
+            const getBgAnimation = () => {
+              if (isExecuting) {
+                return {
+                  backgroundColor: [
+                    'rgba(59, 130, 246, 0)',
+                    'rgba(59, 130, 246, 0.25)',
+                    'rgba(59, 130, 246, 0.15)',
+                  ],
+                }
+              }
+              if (isScheduledFrom) {
+                return {
+                  backgroundColor: [
+                    'rgba(249, 115, 22, 0)',
+                    'rgba(249, 115, 22, 0.2)',
+                    'rgba(249, 115, 22, 0.1)',
+                  ],
+                }
+              }
+              if (isWillExecute) {
+                return {
+                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                }
+              }
+              return { backgroundColor: 'transparent' }
+            }
+
+            // Determine badge color
+            const getBadgeClass = () => {
+              if (isExecuting) return 'bg-blue-500 text-white'
+              if (isScheduledFrom) return 'bg-orange-500 text-white'
+              if (isWillExecute) return 'bg-green-500/50 text-green-200'
+              return ''
+            }
 
             return (
               <motion.div
                 key={index}
-                className={`code-line ${isHighlighted ? 'executing' : ''}`}
-                animate={isHighlighted ? {
-                  backgroundColor: ['rgba(59, 130, 246, 0)', 'rgba(59, 130, 246, 0.2)', 'rgba(59, 130, 246, 0.15)'],
-                } : { backgroundColor: 'transparent' }}
+                className={`code-line ${highlight ? 'highlighted' : ''}`}
+                animate={getBgAnimation()}
                 transition={{ duration: 0.3 }}
+                style={{
+                  borderLeft: isExecuting
+                    ? '3px solid #3b82f6'
+                    : isScheduledFrom
+                      ? '3px solid #f97316'
+                      : isWillExecute
+                        ? '3px solid rgba(34, 197, 94, 0.5)'
+                        : '3px solid transparent',
+                }}
               >
-                <span className="line-number">{lineNum}</span>
+                <span className={`line-number ${highlight ? 'text-white' : ''}`}>{lineNum}</span>
                 <span className="flex-1">
                   <SyntaxHighlight code={line} />
                 </span>
                 <AnimatePresence>
-                  {isHighlighted && (
+                  {highlight && (
                     <motion.span
                       initial={{ opacity: 0, scale: 0.8, x: 10 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.8, x: 10 }}
-                      className="executing-badge"
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded ml-2 ${getBadgeClass()}`}
                     >
-                      {currentLabel || 'EXECUTING'}
+                      {highlight.label || (isExecuting ? 'EXECUTING' : isScheduledFrom ? 'ORIGIN' : 'NEXT')}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -377,6 +484,24 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
           })
         )}
       </div>
+
+      {/* Highlight Legend */}
+      {highlights.length > 0 && (
+        <div className="px-4 py-2 border-t border-[#252525] flex items-center gap-4 text-[10px]">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-blue-500" />
+            <span className="text-[#888]">Executing</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-orange-500" />
+            <span className="text-[#888]">Scheduled From</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded bg-green-500/50" />
+            <span className="text-[#888]">Next</span>
+          </div>
+        </div>
+      )}
 
       {/* Run Button */}
       <div className="p-3 border-t border-[#333]">
@@ -397,14 +522,23 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </motion.svg>
               <span>Running...</span>
             </>
           ) : (
             <>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span>Run Code</span>
             </>
@@ -416,16 +550,14 @@ export function CodeInputPanel({ onRun, isRunning }: CodeInputPanelProps) {
 }
 
 function SyntaxHighlight({ code }: { code: string }) {
-  const keywords = /\b(const|let|var|function|return|if|else|for|while|class|new|this|async|await|import|export|from|try|catch|throw|typeof|instanceof)\b/g
+  const keywords =
+    /\b(const|let|var|function|return|if|else|for|while|class|new|this|async|await|import|export|from|try|catch|throw|typeof|instanceof)\b/g
   const strings = /(["'`])(?:(?!\1)[^\\]|\\.)*\1/g
   const numbers = /\b(\d+\.?\d*)\b/g
   const comments = /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm
   const functions = /\b([a-zA-Z_]\w*)\s*(?=\()/g
 
-  let html = code
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  let html = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
   html = html.replace(comments, '<span class="text-[#6a737d]">$1</span>')
   html = html.replace(strings, '<span class="text-[#ce9178]">$&</span>')

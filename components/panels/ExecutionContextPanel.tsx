@@ -6,8 +6,10 @@ import { useExecutionStore } from '@/stores/executionStore'
 export function ExecutionContextPanel() {
   const currentPhase = useExecutionStore((s) => s.currentPhase)
   const currentDescription = useExecutionStore((s) => s.currentDescription)
+  const currentExplanation = useExecutionStore((s) => s.currentExplanation)
   const currentLine = useExecutionStore((s) => s.currentLine)
   const callStack = useExecutionStore((s) => s.callStack)
+  const virtualTime = useExecutionStore((s) => s.virtualTime)
 
   const phaseColors: Record<string, { bg: string; text: string; border: string }> = {
     sync: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500' },
@@ -28,9 +30,7 @@ export function ExecutionContextPanel() {
           </svg>
           <span>EXECUTION CONTEXT</span>
         </div>
-        <span className={`text-xs font-normal uppercase ${currentColor.text}`}>
-          {activeFrame?.name || 'GLOBAL'}
-        </span>
+        <span className="text-xs font-normal text-[#666]">{virtualTime}ms</span>
       </div>
 
       <div className="panel-content flex-1 overflow-auto">
@@ -52,60 +52,48 @@ export function ExecutionContextPanel() {
                   transition={{ duration: 1.5, repeat: Infinity }}
                 />
                 <span className={`font-medium ${currentColor.text}`}>
-                  {activeFrame?.name?.toUpperCase() || 'GLOBAL'} ({currentPhase.toUpperCase()})
+                  {activeFrame?.name?.toUpperCase() || 'IDLE'} ({currentPhase.toUpperCase()})
                 </span>
               </div>
 
               {currentLine && currentLine > 0 ? (
-                <div className="text-xs text-[#888]">
-                  Executing line {currentLine}
-                </div>
+                <div className="text-xs text-[#888]">Executing line {currentLine}</div>
               ) : (
-                <div className="text-xs text-[#666]">No variables</div>
+                <div className="text-xs text-[#666]">Ready</div>
               )}
             </div>
 
             {/* Current Phase Info */}
             <div className="rounded-lg border border-[#333] bg-[#1a1a1a] p-4">
-              <div className="text-xs text-[#666] uppercase tracking-wider mb-2 font-medium">
-                Current Action
-              </div>
-              <div className={`text-sm ${currentColor.text}`}>
-                {currentDescription || 'Ready to execute'}
-              </div>
-              {currentLine && currentLine > 0 && (
-                <div className="mt-2 text-xs text-[#666]">
-                  Line {currentLine}
-                </div>
-              )}
+              <div className="text-xs text-[#666] uppercase tracking-wider mb-2 font-medium">Current Action</div>
+              <div className={`text-sm ${currentColor.text}`}>{currentDescription || 'Ready to execute'}</div>
+              {currentLine && currentLine > 0 && <div className="mt-2 text-xs text-[#666]">Line {currentLine}</div>}
             </div>
+
+            {/* Explanation Box - Educational Content */}
+            {currentExplanation && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="rounded-lg border border-cyan-500/30 bg-cyan-500/5 p-4"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-cyan-400 text-lg">💡</span>
+                  <span className="text-xs text-cyan-400 uppercase tracking-wider font-medium">Learn</span>
+                </div>
+                <div className="text-sm text-cyan-200/80 leading-relaxed">{currentExplanation}</div>
+              </motion.div>
+            )}
 
             {/* Phase Legend */}
             <div className="space-y-2">
-              <div className="text-xs text-[#666] uppercase tracking-wider font-medium">
-                Event Loop Phase
-              </div>
+              <div className="text-xs text-[#666] uppercase tracking-wider font-medium">Event Loop Phase</div>
               <div className="grid grid-cols-2 gap-2">
-                <PhaseIndicator
-                  label="Sync"
-                  color="blue"
-                  isActive={currentPhase === 'sync'}
-                />
-                <PhaseIndicator
-                  label="Microtask"
-                  color="purple"
-                  isActive={currentPhase === 'microtask'}
-                />
-                <PhaseIndicator
-                  label="Macrotask"
-                  color="green"
-                  isActive={currentPhase === 'macrotask'}
-                />
-                <PhaseIndicator
-                  label="Idle"
-                  color="gray"
-                  isActive={currentPhase === 'idle'}
-                />
+                <PhaseIndicator label="Sync" color="blue" isActive={currentPhase === 'sync'} />
+                <PhaseIndicator label="Microtask" color="purple" isActive={currentPhase === 'microtask'} />
+                <PhaseIndicator label="Macrotask" color="green" isActive={currentPhase === 'macrotask'} />
+                <PhaseIndicator label="Idle" color="gray" isActive={currentPhase === 'idle'} />
               </div>
             </div>
           </motion.div>
@@ -144,9 +132,7 @@ function PhaseIndicator({
         transition={{ duration: 1, repeat: Infinity }}
         style={{ opacity: isActive ? 1 : 0.4 }}
       />
-      <span className={isActive ? colorMap[color].text : 'text-[#666]'}>
-        {label}
-      </span>
+      <span className={isActive ? colorMap[color].text : 'text-[#666]'}>{label}</span>
     </div>
   )
 }

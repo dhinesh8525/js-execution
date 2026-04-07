@@ -1,3 +1,26 @@
+import {
+  BUBBLE_SORT,
+  SELECTION_SORT,
+  INSERTION_SORT,
+  QUICK_SORT,
+  MERGE_SORT,
+  LINEAR_SEARCH,
+  BINARY_SEARCH,
+  BINARY_SEARCH_RECURSIVE,
+  FACTORIAL,
+  FIBONACCI,
+  POWER,
+  SUM_ARRAY,
+  TREE_DFS,
+  GRAPH_DFS,
+  GRAPH_BFS,
+  SUBSETS,
+  PERMUTATIONS,
+  N_QUEENS,
+  STACK_OPERATIONS,
+  QUEUE_OPERATIONS,
+} from './dsa-algorithms'
+
 export const EDITOR_OPTIONS = {
   fontSize: 14,
   fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
@@ -14,234 +37,371 @@ export const EDITOR_OPTIONS = {
 }
 
 export const EXAMPLE_SNIPPETS = {
-  // Basic Examples
-  basic: {
-    title: 'Basic Variables',
-    category: 'basics',
-    complexity: { time: 'O(1)', space: 'O(1)' },
-    description: 'Simple variable declarations and operations',
-    code: `// Basic variable declarations
-let count = 0;
-const name = "JavaScript";
+  // ============================================================================
+  // JS RUNTIME EXAMPLES (Event Loop Visualization)
+  // ============================================================================
 
-count = count + 1;
-console.log("Count:", count);
-console.log("Name:", name);
-`,
-  },
   eventLoop: {
     title: 'Event Loop Demo',
     category: 'async',
+    mode: 'JS_RUNTIME' as const,
     complexity: { time: 'O(1)', space: 'O(n)' },
-    description: 'Classic example showing the event loop, task queue, and microtask queue',
-    code: `console.log('Start');
+    description: 'Classic example showing the event loop, task queue, and microtask queue ordering',
+    code: `console.log('1. Start');
 
 setTimeout(() => {
-  console.log('Timeout 1');
+  console.log('4. Timeout callback');
 }, 0);
 
 Promise.resolve().then(() => {
-  console.log('Promise 1');
+  console.log('3. Promise callback');
 });
 
+console.log('2. End');
+
+// Output order: 1, 2, 3, 4
+// Sync code runs first, then microtasks, then macrotasks`,
+  },
+
+  promiseChain: {
+    title: 'Promise Chain',
+    category: 'async',
+    mode: 'JS_RUNTIME' as const,
+    complexity: { time: 'O(n)', space: 'O(n)' },
+    description: 'Shows how promise chains execute through the microtask queue',
+    code: `console.log('Start');
+
+Promise.resolve(1)
+  .then(value => {
+    console.log('Then 1:', value);
+    return value + 1;
+  })
+  .then(value => {
+    console.log('Then 2:', value);
+    return value + 1;
+  })
+  .then(value => {
+    console.log('Then 3:', value);
+  });
+
+console.log('End');
+
+// Each .then() is a separate microtask`,
+  },
+
+  multipleTimers: {
+    title: 'Multiple Timers',
+    category: 'async',
+    mode: 'JS_RUNTIME' as const,
+    complexity: { time: 'O(1)', space: 'O(n)' },
+    description: 'Shows how multiple setTimeout callbacks are queued and executed',
+    code: `console.log('Start');
+
 setTimeout(() => {
-  console.log('Timeout 2');
+  console.log('Timer 1 (0ms)');
 }, 0);
+
+setTimeout(() => {
+  console.log('Timer 2 (0ms)');
+}, 0);
+
+setTimeout(() => {
+  console.log('Timer 3 (100ms)');
+}, 100);
+
+Promise.resolve().then(() => {
+  console.log('Promise (microtask)');
+});
+
+console.log('End');
+
+// Microtasks run before any macrotasks`,
+  },
+
+  nestedPromises: {
+    title: 'Nested Promises',
+    category: 'async',
+    mode: 'JS_RUNTIME' as const,
+    complexity: { time: 'O(n)', space: 'O(n)' },
+    description: 'Shows microtasks scheduling more microtasks',
+    code: `console.log('Start');
+
+Promise.resolve().then(() => {
+  console.log('Promise 1');
+
+  Promise.resolve().then(() => {
+    console.log('Nested Promise');
+  });
+});
 
 Promise.resolve().then(() => {
   console.log('Promise 2');
 });
 
-console.log('End');`,
+console.log('End');
+
+// Nested microtasks run before macrotasks`,
   },
 
-  // DSA Examples
-  binarySearch: {
-    title: 'Binary Search',
-    category: 'dsa',
-    complexity: { time: 'O(log n)', space: 'O(1)' },
-    description: 'Efficient search algorithm for sorted arrays',
-    code: `function binarySearch(arr, target) {
-  let left = 0;
-  let right = arr.length - 1;
+  timerWithPromise: {
+    title: 'Timer + Promise Mix',
+    category: 'async',
+    mode: 'JS_RUNTIME' as const,
+    complexity: { time: 'O(1)', space: 'O(n)' },
+    description: 'Shows interaction between timers and promises',
+    code: `console.log('Script start');
 
-  while (left <= right) {
-    const mid = Math.floor((left + right) / 2);
-    console.log("Checking index:", mid);
+setTimeout(() => {
+  console.log('setTimeout');
 
-    if (arr[mid] === target) {
-      console.log("Found at:", mid);
-      return mid;
-    }
+  Promise.resolve().then(() => {
+    console.log('Promise inside timeout');
+  });
+}, 0);
 
-    if (arr[mid] < target) {
-      left = mid + 1;
-    } else {
-      right = mid - 1;
-    }
-  }
+Promise.resolve().then(() => {
+  console.log('Promise 1');
+}).then(() => {
+  console.log('Promise 2');
+});
 
-  console.log("Not found");
-  return -1;
-}
-
-const arr = [1, 3, 5, 7, 9, 11, 13];
-binarySearch(arr, 7);
-`,
+console.log('Script end');`,
   },
+
+  // ============================================================================
+  // DSA EXAMPLES - SORTING (Real Algorithms with Trace)
+  // ============================================================================
+
   bubbleSort: {
     title: 'Bubble Sort',
     category: 'dsa',
+    mode: 'DSA' as const,
     complexity: { time: 'O(n²)', space: 'O(1)' },
-    description: 'Simple sorting algorithm with nested loops',
-    code: `function bubbleSort(arr) {
-  const n = arr.length;
-
-  for (let i = 0; i < n - 1; i++) {
-    console.log("Pass", i + 1);
-
-    for (let j = 0; j < n - i - 1; j++) {
-      if (arr[j] > arr[j + 1]) {
-        // Swap
-        const temp = arr[j];
-        arr[j] = arr[j + 1];
-        arr[j + 1] = temp;
-        console.log("Swapped:", arr[j], arr[j+1]);
-      }
-    }
-  }
-
-  return arr;
-}
-
-const arr = [64, 34, 25, 12, 22];
-console.log("Sorted:", bubbleSort(arr));
-`,
+    description: 'Compare adjacent elements and swap if out of order',
+    code: BUBBLE_SORT,
   },
-  fibonacci: {
-    title: 'Fibonacci (Recursive)',
+
+  selectionSort: {
+    title: 'Selection Sort',
     category: 'dsa',
-    complexity: { time: 'O(2ⁿ)', space: 'O(n)' },
-    description: 'Classic recursive algorithm showing exponential calls',
-    code: `function fibonacci(n) {
-  console.log("fib(" + n + ")");
-
-  if (n <= 1) {
-    return n;
-  }
-
-  return fibonacci(n - 1) + fibonacci(n - 2);
-}
-
-const result = fibonacci(6);
-console.log("Result:", result);
-`,
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n²)', space: 'O(1)' },
+    description: 'Find minimum element and place at beginning',
+    code: SELECTION_SORT,
   },
-  factorial: {
-    title: 'Factorial (Recursive)',
+
+  insertionSort: {
+    title: 'Insertion Sort',
     category: 'dsa',
-    complexity: { time: 'O(n)', space: 'O(n)' },
-    description: 'Recursive function demonstrating call stack growth',
-    code: `function factorial(n) {
-  console.log("factorial(" + n + ")");
-
-  if (n <= 1) {
-    return 1;
-  }
-
-  return n * factorial(n - 1);
-}
-
-const result = factorial(5);
-console.log("Result:", result);
-`,
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n²)', space: 'O(1)' },
+    description: 'Build sorted array one element at a time',
+    code: INSERTION_SORT,
   },
-  mergeSort: {
-    title: 'Merge Sort',
-    category: 'dsa',
-    complexity: { time: 'O(n log n)', space: 'O(n)' },
-    description: 'Divide and conquer sorting algorithm',
-    code: `function mergeSort(arr) {
-  console.log("Sorting:", arr);
 
-  if (arr.length <= 1) {
-    return arr;
-  }
-
-  const mid = Math.floor(arr.length / 2);
-  const left = mergeSort(arr.slice(0, mid));
-  const right = mergeSort(arr.slice(mid));
-
-  return merge(left, right);
-}
-
-function merge(left, right) {
-  const result = [];
-  let i = 0, j = 0;
-
-  while (i < left.length && j < right.length) {
-    if (left[i] < right[j]) {
-      result.push(left[i]);
-      i++;
-    } else {
-      result.push(right[j]);
-      j++;
-    }
-  }
-
-  const merged = result.concat(left.slice(i)).concat(right.slice(j));
-  console.log("Merged:", merged);
-  return merged;
-}
-
-const arr = [38, 27, 43, 3, 9, 82, 10];
-console.log("Result:", mergeSort(arr));
-`,
-  },
   quickSort: {
     title: 'Quick Sort',
     category: 'dsa',
+    mode: 'DSA' as const,
     complexity: { time: 'O(n log n)', space: 'O(log n)' },
-    description: 'Efficient divide and conquer sorting',
-    code: `function quickSort(arr, low, high) {
-  if (low === undefined) low = 0;
-  if (high === undefined) high = arr.length - 1;
-
-  if (low < high) {
-    const pi = partition(arr, low, high);
-    console.log("Pivot at:", pi, "Array:", arr);
-
-    quickSort(arr, low, pi - 1);
-    quickSort(arr, pi + 1, high);
-  }
-
-  return arr;
-}
-
-function partition(arr, low, high) {
-  const pivot = arr[high];
-  let i = low - 1;
-
-  for (let j = low; j < high; j++) {
-    if (arr[j] < pivot) {
-      i++;
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  }
-
-  [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
-  return i + 1;
-}
-
-const arr = [10, 7, 8, 9, 1, 5];
-console.log("Sorted:", quickSort(arr));
-`,
+    description: 'Divide and conquer using pivot partitioning',
+    code: QUICK_SORT,
   },
 
-  // Closure & Scope
+  mergeSort: {
+    title: 'Merge Sort',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n log n)', space: 'O(n)' },
+    description: 'Divide, sort, and merge subarrays',
+    code: MERGE_SORT,
+  },
+
+  // ============================================================================
+  // DSA EXAMPLES - SEARCHING
+  // ============================================================================
+
+  linearSearch: {
+    title: 'Linear Search',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n)', space: 'O(1)' },
+    description: 'Search each element sequentially',
+    code: LINEAR_SEARCH,
+  },
+
+  binarySearch: {
+    title: 'Binary Search',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(log n)', space: 'O(1)' },
+    description: 'Divide and conquer search in sorted array',
+    code: BINARY_SEARCH,
+  },
+
+  binarySearchRecursive: {
+    title: 'Binary Search (Recursive)',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(log n)', space: 'O(log n)' },
+    description: 'Recursive binary search with call stack',
+    code: BINARY_SEARCH_RECURSIVE,
+  },
+
+  // ============================================================================
+  // DSA EXAMPLES - RECURSION
+  // ============================================================================
+
+  factorial: {
+    title: 'Factorial',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n)', space: 'O(n)' },
+    description: 'Classic recursive factorial computation',
+    code: FACTORIAL,
+  },
+
+  fibonacci: {
+    title: 'Fibonacci',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(2^n)', space: 'O(n)' },
+    description: 'Recursive Fibonacci with exponential calls',
+    code: FIBONACCI,
+  },
+
+  power: {
+    title: 'Power Function',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(log n)', space: 'O(log n)' },
+    description: 'Fast exponentiation using divide and conquer',
+    code: POWER,
+  },
+
+  sumArray: {
+    title: 'Sum Array (Recursive)',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n)', space: 'O(n)' },
+    description: 'Recursive sum of array elements',
+    code: SUM_ARRAY,
+  },
+
+  // ============================================================================
+  // DSA EXAMPLES - TREES
+  // ============================================================================
+
+  treeDFS: {
+    title: 'Tree DFS Traversals',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n)', space: 'O(h)' },
+    description: 'Inorder and Preorder tree traversals',
+    code: TREE_DFS,
+  },
+
+  // ============================================================================
+  // DSA EXAMPLES - GRAPHS
+  // ============================================================================
+
+  graphDFS: {
+    title: 'Graph DFS',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(V+E)', space: 'O(V)' },
+    description: 'Depth-first graph traversal',
+    code: GRAPH_DFS,
+  },
+
+  graphBFS: {
+    title: 'Graph BFS',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(V+E)', space: 'O(V)' },
+    description: 'Breadth-first graph traversal with levels',
+    code: GRAPH_BFS,
+  },
+
+  // ============================================================================
+  // DSA EXAMPLES - BACKTRACKING
+  // ============================================================================
+
+  subsets: {
+    title: 'Generate Subsets',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(2^n)', space: 'O(n)' },
+    description: 'Generate all subsets using backtracking',
+    code: SUBSETS,
+  },
+
+  permutations: {
+    title: 'Generate Permutations',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n!)', space: 'O(n)' },
+    description: 'Generate all permutations using backtracking',
+    code: PERMUTATIONS,
+  },
+
+  nQueens: {
+    title: 'N-Queens',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(n!)', space: 'O(n)' },
+    description: 'Solve N-Queens using backtracking',
+    code: N_QUEENS,
+  },
+
+  // ============================================================================
+  // DSA EXAMPLES - STACK & QUEUE
+  // ============================================================================
+
+  stackOperations: {
+    title: 'Stack Operations',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(1)', space: 'O(n)' },
+    description: 'Push, pop, and peek operations on stack',
+    code: STACK_OPERATIONS,
+  },
+
+  queueOperations: {
+    title: 'Queue Operations',
+    category: 'dsa',
+    mode: 'DSA' as const,
+    complexity: { time: 'O(1)', space: 'O(n)' },
+    description: 'Enqueue and dequeue operations on queue',
+    code: QUEUE_OPERATIONS,
+  },
+
+  // ============================================================================
+  // BASIC EXAMPLES
+  // ============================================================================
+
+  basic: {
+    title: 'Basic Variables',
+    category: 'basics',
+    mode: 'JS_RUNTIME' as const,
+    complexity: { time: 'O(1)', space: 'O(1)' },
+    description: 'Simple variable declarations and operations',
+    code: `let count = 0;
+const name = "JavaScript";
+
+count = count + 1;
+console.log("Count:", count);
+
+count = count + 1;
+console.log("Count:", count);
+
+console.log("Name:", name);`,
+  },
+
   closure: {
     title: 'Closure Counter',
     category: 'scope',
+    mode: 'JS_RUNTIME' as const,
     complexity: { time: 'O(1)', space: 'O(1)' },
     description: 'Understanding closures and lexical scope',
     code: `function createCounter() {
@@ -257,12 +417,13 @@ console.log("Sorted:", quickSort(arr));
 const counter = createCounter();
 counter();
 counter();
-counter();
-`,
+counter();`,
   },
+
   scope: {
     title: 'Scope Chain',
     category: 'scope',
+    mode: 'JS_RUNTIME' as const,
     complexity: { time: 'O(1)', space: 'O(1)' },
     description: 'How JavaScript resolves variables in nested scopes',
     code: `const globalVar = "global";
@@ -280,105 +441,39 @@ function outer() {
   inner();
 }
 
-outer();
-`,
-  },
-
-  // Async
-  promises: {
-    title: 'Promise Chain',
-    category: 'async',
-    complexity: { time: 'O(n)', space: 'O(n)' },
-    description: 'Promise chaining and microtask queue',
-    code: `console.log('Start');
-
-Promise.resolve(1)
-  .then(value => {
-    console.log('Then 1:', value);
-    return value + 1;
-  })
-  .then(value => {
-    console.log('Then 2:', value);
-    return value + 1;
-  })
-  .then(value => {
-    console.log('Then 3:', value);
-  });
-
-console.log('End');
-`,
-  },
-
-  // Data Structures
-  linkedList: {
-    title: 'Linked List Traversal',
-    category: 'dsa',
-    complexity: { time: 'O(n)', space: 'O(1)' },
-    description: 'Traversing a linked list data structure',
-    code: `// Create a simple linked list
-function Node(value) {
-  this.value = value;
-  this.next = null;
-}
-
-function traverse(head) {
-  let current = head;
-  let step = 1;
-
-  while (current !== null) {
-    console.log("Step " + step + ": " + current.value);
-    current = current.next;
-    step++;
-  }
-}
-
-// Build list: 1 -> 2 -> 3 -> 4
-const head = new Node(1);
-head.next = new Node(2);
-head.next.next = new Node(3);
-head.next.next.next = new Node(4);
-
-traverse(head);
-`,
-  },
-  twoSum: {
-    title: 'Two Sum (Hash Map)',
-    category: 'dsa',
-    complexity: { time: 'O(n)', space: 'O(n)' },
-    description: 'Classic interview problem using hash map',
-    code: `function twoSum(nums, target) {
-  const map = {};
-
-  for (let i = 0; i < nums.length; i++) {
-    const complement = target - nums[i];
-    console.log("Checking:", nums[i], "Need:", complement);
-
-    if (map[complement] !== undefined) {
-      console.log("Found pair!");
-      return [map[complement], i];
-    }
-
-    map[nums[i]] = i;
-  }
-
-  return [];
-}
-
-const nums = [2, 7, 11, 15];
-const result = twoSum(nums, 9);
-console.log("Result:", result);
-`,
+outer();`,
   },
 } as const
 
 export type ExampleKey = keyof typeof EXAMPLE_SNIPPETS
 
 export const EXAMPLE_CATEGORIES = {
-  basics: { label: 'Basics', color: 'blue' },
-  dsa: { label: 'DSA / Algorithms', color: 'green' },
-  scope: { label: 'Scope & Closures', color: 'purple' },
-  async: { label: 'Async / Event Loop', color: 'orange' },
+  async: { label: 'Event Loop / Async', color: 'orange', mode: 'JS_RUNTIME' as const },
+  dsa: { label: 'DSA / Algorithms', color: 'green', mode: 'DSA' as const },
+  basics: { label: 'Basics', color: 'blue', mode: 'JS_RUNTIME' as const },
+  scope: { label: 'Scope & Closures', color: 'purple', mode: 'JS_RUNTIME' as const },
 } as const
+
+/**
+ * DSA Examples categorized by algorithm type
+ */
+export const DSA_EXAMPLES_BY_TYPE = {
+  SORTING: ['bubbleSort', 'selectionSort', 'insertionSort', 'quickSort', 'mergeSort'] as const,
+  SEARCHING: ['linearSearch', 'binarySearch', 'binarySearchRecursive'] as const,
+  RECURSION: ['factorial', 'fibonacci', 'power', 'sumArray'] as const,
+  TREES: ['treeDFS'] as const,
+  GRAPHS: ['graphDFS', 'graphBFS'] as const,
+  BACKTRACKING: ['subsets', 'permutations', 'nQueens'] as const,
+  STACK_QUEUE: ['stackOperations', 'queueOperations'] as const,
+} as const
+
+/**
+ * Get the suggested mode for an example
+ */
+export function getSuggestedMode(exampleKey: ExampleKey): 'JS_RUNTIME' | 'DSA' {
+  const example = EXAMPLE_SNIPPETS[exampleKey]
+  return example.mode
+}
 
 export const PLAYBACK_SPEEDS = [0.5, 1, 2, 4]
 

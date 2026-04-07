@@ -4,7 +4,9 @@ import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditorStore } from '@/stores/editorStore'
 import { useExecutionStore } from '@/stores/executionStore'
-import { simulateEventLoop } from '@/engine/simulator/eventLoopSimulator'
+import { EventLoopEngine, TraceExecutionEngine } from '@/engine/simulator'
+import { ModeDetector } from '@/engine/detector'
+import type { ExecutionMode, AlgorithmType } from '@/engine/simulator'
 
 // Dynamic imports to avoid hydration issues with Framer Motion
 const CodeInputPanel = dynamic(
@@ -15,10 +17,10 @@ const CallStackPanel = dynamic(
   () => import('@/components/panels/CallStackPanel').then((m) => ({ default: m.CallStackPanel })),
   { ssr: false }
 )
-const ExecutionContextPanel = dynamic(
+const ExplanationPanel = dynamic(
   () =>
-    import('@/components/panels/ExecutionContextPanel').then((m) => ({
-      default: m.ExecutionContextPanel,
+    import('@/components/panels/ExplanationPanel').then((m) => ({
+      default: m.ExplanationPanel,
     })),
   { ssr: false }
 )
@@ -50,14 +52,59 @@ const EventLoopDiagram = dynamic(
     import('@/components/panels/EventLoopDiagram').then((m) => ({ default: m.EventLoopDiagram })),
   { ssr: false }
 )
+const ConnectionArrows = dynamic(
+  () =>
+    import('@/components/visualizer/ConnectionArrows').then((m) => ({ default: m.ConnectionArrows })),
+  { ssr: false }
+)
+const TimelinePanel = dynamic(
+  () =>
+    import('@/components/panels/TimelinePanel').then((m) => ({ default: m.TimelinePanel })),
+  { ssr: false }
+)
+
+// DSA-specific panels
+const ArrayVisualizerPanel = dynamic(
+  () =>
+    import('@/components/panels/ArrayVisualizerPanel').then((m) => ({ default: m.ArrayVisualizerPanel })),
+  { ssr: false }
+)
+const RecursionTreePanel = dynamic(
+  () =>
+    import('@/components/panels/RecursionTreePanel').then((m) => ({ default: m.RecursionTreePanel })),
+  { ssr: false }
+)
+const VariablesPanel = dynamic(
+  () =>
+    import('@/components/panels/VariablesPanel').then((m) => ({ default: m.VariablesPanel })),
+  { ssr: false }
+)
+const AlgorithmMetricsPanel = dynamic(
+  () =>
+    import('@/components/panels/AlgorithmMetricsPanel').then((m) => ({ default: m.AlgorithmMetricsPanel })),
+  { ssr: false }
+)
+
+// Mode selector
+const ModeSelector = dynamic(
+  () =>
+    import('@/components/controls/ModeSelector').then((m) => ({ default: m.ModeSelector })),
+  { ssr: false }
+)
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [isRunning, setIsRunning] = useState(false)
 
+  // Mode detection state
+  const [detectedMode, setDetectedMode] = useState<ExecutionMode>('JS_RUNTIME')
+  const [modeConfidence, setModeConfidence] = useState(1)
+  const [detectedAlgorithmType, setDetectedAlgorithmType] = useState<AlgorithmType | null>(null)
+
   const code = useEditorStore((s) => s.code)
-  const setHighlightedLine = useEditorStore((s) => s.setHighlightedLine)
+  const setHighlights = useEditorStore((s) => s.setHighlights)
+  const clearHighlights = useEditorStore((s) => s.clearHighlights)
 
   const setSteps = useExecutionStore((s) => s.setSteps)
   const goToStep = useExecutionStore((s) => s.goToStep)
@@ -71,29 +118,66 @@ export default function Home() {
   const playbackSpeed = useExecutionStore((s) => s.playbackSpeed)
   const currentStep = useExecutionStore((s) => s.currentStep)
   const totalSteps = useExecutionStore((s) => s.totalSteps)
-  const currentLine = useExecutionStore((s) => s.currentLine)
+  const highlights = useExecutionStore((s) => s.highlights)
+  const executionMode = useExecutionStore((s) => s.executionMode)
+  const algorithmType = useExecutionStore((s) => s.algorithmType)
+  const manualModeOverride = useExecutionStore((s) => s.manualModeOverride)
+  const setManualModeOverride = useExecutionStore((s) => s.setManualModeOverride)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Sync highlighted line with current step
+  // Sync highlighted lines with current step
   useEffect(() => {
-    setHighlightedLine(currentLine)
-  }, [currentLine, setHighlightedLine])
+    setHighlights(highlights)
+  }, [highlights, setHighlights])
+
+  // Detect mode when code changes
+  useEffect(() => {
+    const detection = ModeDetector.detect(code)
+    setDetectedMode(detection.mode)
+    setModeConfidence(detection.confidence)
+    setDetectedAlgorithmType(detection.algorithmType)
+  }, [code])
 
   const handleRun = useCallback(async () => {
     setIsRunning(true)
     reset()
 
     try {
-      const steps = simulateEventLoop(code)
+      // Determine which mode to use (manual override or auto-detected)
+      const effectiveMode = manualModeOverride ?? detectedMode
 
-      if (steps.length > 0) {
-        setSteps(steps)
-        goToStep(0)
+      if (effectiveMode === 'JS_RUNTIME') {
+        // Use EventLoopEngine for JS Runtime visualization
+        const engine = new EventLoopEngine({
+          maxSteps: 500,
+          includeExplanations: true,
+        })
+        const steps = engine.simulate(code)
+
+        if (steps.length > 0) {
+          setSteps(steps, 'JS_RUNTIME', null)
+          goToStep(0)
+        } else {
+          setError({ message: 'No executable code found' })
+        }
       } else {
-        setError({ message: 'No executable code found' })
+        // Use TraceExecutionEngine for algorithm visualization (real algorithms with trace)
+        const engine = new TraceExecutionEngine({
+          maxSteps: 500,
+          includeExplanations: true,
+          algorithmType: detectedAlgorithmType ?? 'GENERIC',
+        })
+        const steps = engine.simulate(code, detectedAlgorithmType ?? undefined)
+
+        if (steps.length > 0) {
+          setSteps(steps, 'DSA', detectedAlgorithmType)
+          goToStep(0)
+        } else {
+          setError({ message: 'No executable code found' })
+        }
       }
     } catch (error) {
       setError({
@@ -102,7 +186,11 @@ export default function Home() {
     } finally {
       setIsRunning(false)
     }
-  }, [code, reset, setSteps, goToStep, setError])
+  }, [code, reset, setSteps, goToStep, setError, manualModeOverride, detectedMode, detectedAlgorithmType])
+
+  const handleModeChange = useCallback((mode: ExecutionMode) => {
+    setManualModeOverride(mode)
+  }, [setManualModeOverride])
 
   const handleStepForward = useCallback(() => {
     nextStep()
@@ -124,8 +212,8 @@ export default function Home() {
 
   const handleReset = useCallback(() => {
     reset()
-    setHighlightedLine(null)
-  }, [reset, setHighlightedLine])
+    clearHighlights()
+  }, [reset, clearHighlights])
 
   // Auto-play interval
   useEffect(() => {
@@ -210,17 +298,33 @@ export default function Home() {
     )
   }
 
+  // Determine effective mode for rendering
+  // Use detected mode before running, execution mode after running
+  const effectiveMode = manualModeOverride ?? (totalSteps > 0 ? executionMode : detectedMode)
+
   return (
     <div className="h-screen bg-[#0f0f0f] flex flex-col overflow-hidden">
+      {/* Connection arrows overlay (JS Runtime only) */}
+      {effectiveMode === 'JS_RUNTIME' && <ConnectionArrows />}
+
       {/* Header */}
       <header className="flex items-center gap-3 px-6 py-4 border-b border-[#252525]">
         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg">
           {'>_'}
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-white">JS Visualizer</h1>
           <p className="text-sm text-[#666]">Visualize JavaScript execution step by step</p>
         </div>
+
+        {/* Mode Selector */}
+        <ModeSelector
+          detectedMode={detectedMode}
+          currentMode={effectiveMode}
+          confidence={modeConfidence}
+          algorithmType={effectiveMode === 'DSA' ? (algorithmType ?? detectedAlgorithmType) : null}
+          onModeChange={handleModeChange}
+        />
       </header>
 
       {/* Main Content */}
@@ -230,25 +334,51 @@ export default function Home() {
           <CodeInputPanel onRun={handleRun} isRunning={isRunning} />
         </div>
 
-        {/* Center Column - Visualization */}
+        {/* Center Column - Mode-aware Visualization */}
         <div className="col-span-6 flex flex-col gap-4 min-h-0">
-          {/* Top Row */}
-          <div className="grid grid-cols-2 gap-4 flex-shrink-0" style={{ height: '35%' }}>
-            <CallStackPanel />
-            <ExecutionContextPanel />
-          </div>
+          {effectiveMode === 'JS_RUNTIME' ? (
+            // JS Runtime Mode - Event Loop Visualization
+            <>
+              {/* Top Row */}
+              <div className="grid grid-cols-2 gap-4 flex-shrink-0" style={{ height: '35%' }}>
+                <CallStackPanel />
+                <ExplanationPanel />
+              </div>
 
-          {/* Middle Row - Queues */}
-          <div className="grid grid-cols-3 gap-4 flex-shrink-0" style={{ height: '25%' }}>
-            <WebApisPanel />
-            <TaskQueuePanel />
-            <MicrotaskQueuePanel />
-          </div>
+              {/* Middle Row - Queues */}
+              <div className="grid grid-cols-3 gap-4 flex-shrink-0" style={{ height: '25%' }}>
+                <WebApisPanel />
+                <TaskQueuePanel />
+                <MicrotaskQueuePanel />
+              </div>
 
-          {/* Bottom Row - Console */}
-          <div className="flex-1 min-h-0">
-            <ConsolePanel />
-          </div>
+              {/* Bottom Row - Console */}
+              <div className="flex-1 min-h-0">
+                <ConsolePanel />
+              </div>
+            </>
+          ) : (
+            // DSA Mode - Algorithm Visualization
+            <>
+              {/* Top Row - Array + Explanation */}
+              <div className="grid grid-cols-2 gap-4 flex-shrink-0" style={{ height: '40%' }}>
+                <ArrayVisualizerPanel />
+                <ExplanationPanel />
+              </div>
+
+              {/* Middle Row - Variables + Recursion + Metrics */}
+              <div className="grid grid-cols-3 gap-4 flex-shrink-0" style={{ height: '30%' }}>
+                <VariablesPanel />
+                <RecursionTreePanel />
+                <AlgorithmMetricsPanel />
+              </div>
+
+              {/* Bottom Row - Console */}
+              <div className="flex-1 min-h-0">
+                <ConsolePanel />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Right Column - Controls */}
@@ -264,7 +394,8 @@ export default function Home() {
             currentStep={currentStep}
             totalSteps={totalSteps}
           />
-          <EventLoopDiagram />
+          <TimelinePanel />
+          {effectiveMode === 'JS_RUNTIME' && <EventLoopDiagram />}
         </div>
       </main>
 

@@ -1,18 +1,35 @@
 # JavaScript/TypeScript Code Execution Visualizer
 
-A production-ready educational tool that visualizes JavaScript/TypeScript code execution in real-time. Similar to Python Tutor but designed for modern JS/TS with event loop visualization, async behavior, and interactive animations.
+A production-ready educational tool that visualizes JavaScript/TypeScript code execution in real-time. Similar to Python Tutor but designed for modern JS/TS with **dual-mode visualization** for both event loop behavior and data structures/algorithms.
 
 ## Features
 
-- **Real-time Code Visualization**: Watch your code execute step by step
-- **Call Stack Visualization**: See function calls and returns
-- **Scope Chain**: Understand variable scoping and closures
-- **Memory Heap**: Visualize objects and references
-- **Event Loop**: Understand async operations, microtasks, and macrotasks
+### Dual-Mode Intelligent Visualization
+
+The visualizer automatically detects the type of code you're writing and switches between two visualization modes:
+
+#### JS Runtime Mode (Event Loop)
+- **Call Stack Visualization**: See function calls and returns in real-time
+- **Web APIs Panel**: Track active timers and async operations
+- **Task Queue**: Visualize macrotask scheduling and execution
+- **Microtask Queue**: Understand Promise resolution order
+- **Event Loop Diagram**: See the current phase of the event loop
+- **Connection Arrows**: Animated arrows showing task flow
+
+#### DSA Mode (Algorithms)
+- **Array Visualizer**: Bar chart with color-coded operations (comparing, swapping, sorted)
+- **Recursion Tree**: Hierarchical view of recursive function calls
+- **Variables Panel**: Track variable changes with previous values
+- **Algorithm Metrics**: Count comparisons, swaps, and recursion depth
+- **Pointer Indicators**: Visual markers for indices (i, j, left, right, mid)
+
+### Core Features
+- **Auto Mode Detection**: Automatically selects the best visualization mode
+- **Manual Override**: Toggle between modes as needed
 - **Time Travel**: Step forward, backward, or jump to any execution point
-- **Code Examples**: Pre-built examples for closures, recursion, async/await, and more
-- **TypeScript Support**: Compile and visualize TypeScript code
-- **Share Snippets**: Save and share your code visualizations
+- **Playback Controls**: Play, pause, speed adjustment
+- **Code Examples**: Pre-built examples for async patterns, sorting, searching, and more
+- **Step Explanations**: Learn what's happening at each step
 
 ## Tech Stack
 
@@ -82,54 +99,96 @@ A production-ready educational tool that visualizes JavaScript/TypeScript code e
 
 ### Visualization Modes
 
-- **Full**: Shows call stack, scope chain, and heap
-- **Stack Only**: Focus on call stack
-- **Memory Only**: Focus on scope and heap
-- **Event Loop**: Visualize async operations
+The visualizer automatically detects the appropriate mode based on code patterns:
+
+#### JS Runtime Mode
+Best for code with:
+- `setTimeout`, `setInterval`
+- `Promise`, `async/await`
+- `fetch`, event listeners
+- Callback patterns
+
+#### DSA Mode
+Best for code with:
+- Sorting algorithms (bubble, merge, quick sort)
+- Searching algorithms (binary search)
+- Recursive functions (fibonacci, factorial)
+- Array manipulation with loops
 
 ## Project Structure
 
 ```
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
-│   ├── page.tsx           # Main page
+│   ├── page.tsx           # Main page (mode-aware rendering)
 │   └── layout.tsx         # Root layout
-├── components/            # React components
-│   ├── editor/           # Code editor
-│   ├── visualizer/       # Visualization panels
-│   ├── console/          # Console output
-│   ├── controls/         # Playback controls
-│   └── layout/           # Layout components
-├── engine/               # Execution engine
-│   ├── parser/          # Code parsing
-│   ├── instrumentation/ # AST transformation
-│   ├── runtime/         # Sandbox execution
-│   └── execution/       # Step management
-├── stores/              # Zustand stores
-├── types/               # TypeScript types
-└── lib/                 # Utilities
+├── components/
+│   ├── controls/          # Mode selector, playback controls
+│   ├── panels/            # Visualization panels
+│   │   ├── CallStackPanel.tsx        # JS: Call stack
+│   │   ├── WebApisPanel.tsx          # JS: Web APIs
+│   │   ├── TaskQueuePanel.tsx        # JS: Macrotask queue
+│   │   ├── MicrotaskQueuePanel.tsx   # JS: Microtask queue
+│   │   ├── ArrayVisualizerPanel.tsx  # DSA: Array visualization
+│   │   ├── RecursionTreePanel.tsx    # DSA: Recursion tree
+│   │   ├── VariablesPanel.tsx        # DSA: Variables
+│   │   ├── AlgorithmMetricsPanel.tsx # DSA: Metrics
+│   │   └── ...                       # Shared panels
+│   └── visualizer/        # Connection arrows, etc.
+├── engine/
+│   ├── detector/          # Mode detection
+│   │   └── ModeDetector.ts           # Code pattern analysis
+│   └── simulator/         # Execution engines
+│       ├── types.ts                  # Type definitions
+│       ├── EventLoopEngine.ts        # JS Runtime simulation
+│       ├── DSAExecutionEngine.ts     # DSA algorithm simulation
+│       └── ...
+├── stores/
+│   └── executionStore.ts  # Mode-aware state management
+├── docs/                  # Documentation
+│   ├── DUAL_MODE_ARCHITECTURE.md
+│   ├── API_REFERENCE.md
+│   └── DSA_VISUALIZATION.md
+└── lib/                   # Utilities and constants
 ```
 
 ## How It Works
 
+### Mode Detection
+1. **Pattern Analysis**: Code is analyzed for JS runtime patterns (setTimeout, Promise) and DSA patterns (array swaps, recursion)
+2. **Confidence Scoring**: Each pattern contributes to a confidence score
+3. **Mode Selection**: The mode with higher confidence is selected (or use manual override)
+
+### JS Runtime Mode
 1. **Parsing**: Code is parsed into an AST using Babel
-2. **Instrumentation**: AST is transformed to inject trace calls
-3. **Execution**: Instrumented code runs in a Web Worker sandbox
-4. **Collection**: Trace events are collected and processed
-5. **Visualization**: Events drive the visualization components
+2. **Analysis**: Operations are identified (timers, promises, function calls)
+3. **Simulation**: Event loop is simulated with correct semantics
+4. **Visualization**: Call stack, queues, and timers are visualized
+
+### DSA Mode
+1. **Instrumentation**: Code is transformed to inject trace calls
+2. **Execution**: Instrumented code runs in sandboxed environment
+3. **Tracing**: Array operations, comparisons, and recursion are captured
+4. **Visualization**: Arrays, variables, and metrics are visualized
 
 ## Example Snippets
 
-The app includes several pre-built examples:
+The app includes pre-built examples for both modes:
 
-- **Basic Variables**: Variable declarations and assignments
+### JS Runtime Examples
+- **Event Loop Demo**: Classic setTimeout vs Promise ordering
+- **Promise Chain**: Promise resolution and chaining
 - **Closure Counter**: Understanding closures
-- **Factorial**: Recursive function calls
-- **Scope Chain**: Variable scoping
-- **Hoisting**: Variable and function hoisting
-- **Async/Await**: Event loop behavior
-- **Promise Chain**: Promise execution order
-- **Objects & References**: Heap memory visualization
+
+### DSA Examples
+- **Binary Search**: Efficient sorted array search (O(log n))
+- **Bubble Sort**: Simple comparison-based sorting (O(n²))
+- **Merge Sort**: Divide and conquer sorting (O(n log n))
+- **Quick Sort**: Efficient partitioning sort (O(n log n))
+- **Fibonacci**: Recursive sequence generation
+- **Factorial**: Recursive multiplication
+- **Two Sum**: Hash map problem solving
+- **Linked List**: List traversal patterns
 
 ## Development
 

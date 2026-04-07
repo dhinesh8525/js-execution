@@ -8,8 +8,8 @@ export function EventLoopDiagram() {
   const currentPhase = useExecutionStore((s) => s.currentPhase)
   const currentDescription = useExecutionStore((s) => s.currentDescription)
   const callStack = useExecutionStore((s) => s.callStack)
-  const webApis = useExecutionStore((s) => s.webApis)
-  const taskQueue = useExecutionStore((s) => s.taskQueue)
+  const webApiTimers = useExecutionStore((s) => s.webApiTimers)
+  const macrotaskQueue = useExecutionStore((s) => s.macrotaskQueue)
   const microtaskQueue = useExecutionStore((s) => s.microtaskQueue)
   const currentStep = useExecutionStore((s) => s.currentStep)
   const [animatingItem, setAnimatingItem] = useState<string | null>(null)
@@ -19,13 +19,13 @@ export function EventLoopDiagram() {
   const activeNode: ActiveNodeType =
     currentPhase === 'sync' && callStack.length > 0
       ? 'cs'
-      : currentPhase === 'sync' && webApis.length > 0
-      ? 'api'
-      : currentPhase === 'microtask'
-      ? 'micro'
-      : currentPhase === 'macrotask'
-      ? 'task'
-      : 'idle'
+      : currentPhase === 'sync' && webApiTimers.length > 0
+        ? 'api'
+        : currentPhase === 'microtask'
+          ? 'micro'
+          : currentPhase === 'macrotask'
+            ? 'task'
+            : 'idle'
 
   // Animate flow on step change
   useEffect(() => {
@@ -52,14 +52,7 @@ export function EventLoopDiagram() {
             {/* Background circle with dashed line */}
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 224 224">
               {/* Outer track */}
-              <circle
-                cx="112"
-                cy="112"
-                r="90"
-                fill="none"
-                stroke="#252525"
-                strokeWidth="3"
-              />
+              <circle cx="112" cy="112" r="90" fill="none" stroke="#252525" strokeWidth="3" />
               {/* Animated progress arc */}
               <motion.circle
                 cx="112"
@@ -73,10 +66,15 @@ export function EventLoopDiagram() {
                 initial={{ strokeDashoffset: 565 }}
                 animate={{
                   strokeDashoffset:
-                    activeNode === 'idle' ? 565 :
-                    activeNode === 'cs' ? 424 :
-                    activeNode === 'api' ? 282 :
-                    activeNode === 'task' ? 141 : 0,
+                    activeNode === 'idle'
+                      ? 565
+                      : activeNode === 'cs'
+                        ? 424
+                        : activeNode === 'api'
+                          ? 282
+                          : activeNode === 'task'
+                            ? 141
+                            : 0,
                 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
                 style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
@@ -113,7 +111,7 @@ export function EventLoopDiagram() {
               color="orange"
               isActive={activeNode === 'api'}
               isAnimating={animatingItem === 'api'}
-              count={webApis.length}
+              count={webApiTimers.length}
             />
 
             {/* Task Queue Node - Bottom */}
@@ -124,7 +122,7 @@ export function EventLoopDiagram() {
               color="green"
               isActive={activeNode === 'task'}
               isAnimating={animatingItem === 'task'}
-              count={taskQueue.length}
+              count={macrotaskQueue.length}
             />
 
             {/* Microtask Queue Node - Left */}
@@ -146,10 +144,26 @@ export function EventLoopDiagram() {
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <div className="text-2xl mb-1">
-                  {activeNode === 'idle' ? '⏸' : activeNode === 'cs' ? '⚡' : activeNode === 'micro' ? '🔄' : activeNode === 'api' ? '⏱' : '📥'}
+                  {activeNode === 'idle'
+                    ? '⏸'
+                    : activeNode === 'cs'
+                      ? '⚡'
+                      : activeNode === 'micro'
+                        ? '🔄'
+                        : activeNode === 'api'
+                          ? '⏱'
+                          : '📥'}
                 </div>
                 <div className="text-xs text-[#666] font-medium uppercase tracking-wider">
-                  {activeNode === 'idle' ? 'Idle' : activeNode === 'cs' ? 'Executing' : activeNode === 'micro' ? 'Microtasks' : activeNode === 'api' ? 'Waiting' : 'Tasks'}
+                  {activeNode === 'idle'
+                    ? 'Idle'
+                    : activeNode === 'cs'
+                      ? 'Executing'
+                      : activeNode === 'micro'
+                        ? 'Microtasks'
+                        : activeNode === 'api'
+                          ? 'Waiting'
+                          : 'Tasks'}
                 </div>
               </motion.div>
             </div>
@@ -192,9 +206,7 @@ export function EventLoopDiagram() {
               exit={{ opacity: 0, y: -5 }}
               className="text-sm text-white"
             >
-              {currentDescription || (
-                <span className="text-[#666]">Event loop is idle, waiting for tasks...</span>
-              )}
+              {currentDescription || <span className="text-[#666]">Event loop is idle, waiting for tasks...</span>}
             </motion.div>
           </AnimatePresence>
         </div>

@@ -71,7 +71,13 @@ body {
 
 /* Code editor */
 .code-line {
-  @apply flex items-center py-0.5 px-2 rounded;
+  @apply flex items-center py-0.5 px-2 rounded transition-all duration-200;
+  margin-left: -3px;
+  padding-left: calc(0.5rem + 3px);
+}
+
+.code-line.highlighted {
+  @apply rounded-r-lg;
 }
 
 .code-line.executing {
@@ -79,11 +85,38 @@ body {
 }
 
 .line-number {
-  @apply w-8 text-right mr-4 text-[#666] select-none text-sm;
+  @apply w-8 text-right mr-4 text-[#666] select-none text-sm transition-colors;
 }
 
 .executing-badge {
   @apply ml-2 px-2 py-0.5 text-xs font-semibold rounded bg-blue-500 text-white;
+}
+
+/* Multi-highlight styles */
+.highlight-executing {
+  border-left-color: var(--accent-blue) !important;
+}
+
+.highlight-scheduled {
+  border-left-color: var(--accent-orange) !important;
+}
+
+.highlight-next {
+  border-left-color: var(--accent-green) !important;
+}
+
+/* Glow effect for executing line */
+@keyframes line-glow {
+  0%, 100% {
+    box-shadow: inset 3px 0 0 var(--accent-blue), 0 0 10px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    box-shadow: inset 3px 0 0 var(--accent-blue), 0 0 20px rgba(59, 130, 246, 0.4);
+  }
+}
+
+.code-line.highlighted:first-of-type {
+  animation: line-glow 1.5s ease-in-out infinite;
 }
 
 /* Stack frame */
